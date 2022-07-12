@@ -1,51 +1,64 @@
-import React, { Component } from 'react';
-import logo from '../logo.png';
+import React, {useState} from 'react'
+import {ethers} from 'ethers'
 import './App.css';
+const WalletCard = () => {
+	const [errorMessage, setErrorMessage] = useState(null);
+	const [defaultAccount, setDefaultAccount] = useState(null);
+	const [userBalance, setUserBalance] = useState(null);
+	const [connButtonText, setConnButtonText] = useState('Connect Wallet');
 
-class App extends Component {
-  render() {
-    return (
-      <div>
-        <nav className="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
-          <a
-            className="navbar-brand col-sm-3 col-md-2 mr-0"
-            href="http://www.dappuniversity.com/bootcamp"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Dapp University
-          </a>
-        </nav>
-        <div className="container-fluid mt-5">
-          <div className="row">
-            <main role="main" className="col-lg-12 d-flex text-center">
-              <div className="content mr-auto ml-auto">
-                <a
-                  href="http://www.dappuniversity.com/bootcamp"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img src={logo} className="App-logo" alt="logo" />
-                </a>
-                <h1>Dapp University Starter Kit</h1>
-                <p>
-                  Edit <code>src/components/App.js</code> and save to reload.
-                </p>
-                <a
-                  className="App-link"
-                  href="http://www.dappuniversity.com/bootcamp"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  LEARN BLOCKCHAIN <u><b>NOW! </b></u>
-                </a>
-              </div>
-            </main>
-          </div>
-        </div>
-      </div>
-    );
-  }
+	const connectWalletHandler = () => {
+		if (window.ethereum && window.ethereum.isMetaMask) {
+			console.log('MetaMask Here!');
+
+			window.ethereum.request({ method: 'eth_requestAccounts'})
+			.then(result => {
+				accountChangedHandler(result[0]);
+				setConnButtonText('Wallet Connected');
+				getAccountBalance(result[0]);
+			})
+			.catch(error => {
+				setErrorMessage(error.message);
+			});
+		} else {
+			console.log('Need to install MetaMask');
+			setErrorMessage('Please install MetaMask browser extension to interact');
+		}
+	}
+	// update account, will cause component re-render
+	const accountChangedHandler = (newAccount) => {
+		setDefaultAccount(newAccount);
+		getAccountBalance(newAccount.toString());
+	}
+	const getAccountBalance = (account) => {
+		window.ethereum.request({method: 'eth_getBalance', params: [account, 'latest']})
+		.then(balance => {
+			setUserBalance(ethers.utils.formatEther(balance));
+		})
+		.catch(error => {
+			setErrorMessage(error.message);
+		});
+	};
+	const chainChangedHandler = () => {
+		// reload the page to avoid any errors with chain change mid use of application
+		window.location.reload();
+	}
+	// listen for account changes
+	window.ethereum.on('accountsChanged', accountChangedHandler);
+	window.ethereum.on('chainChanged', chainChangedHandler);
+	return (
+		<div className='walletCard'>
+		<h4> {"Connection to MetaMask using window.ethereum methods"} </h4>
+			<button onClick={connectWalletHandler}>{connButtonText}</button>
+			<div className='accountDisplay'>
+				<h3>Address: {defaultAccount}</h3>
+			</div>
+			<div className='balanceDisplay'>
+				<h3>Balance: {userBalance}</h3>
+			</div>
+			{errorMessage}
+		</div>
+	);
 }
 
-export default App;
+export default WalletCard;
