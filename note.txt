@@ -1,0 +1,5 @@
+Is deployed : 
+        const networkID = new Web3(provider).eth.net.getId();
+        console.log(networkID);
+        console.log("Deployed : "+Marketplace.networks[networkID]);
+
