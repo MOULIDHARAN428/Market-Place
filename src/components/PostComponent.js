@@ -67,23 +67,28 @@ const Post = () => {
     window.ethereum.on('accountsChanged', accountChangedHandler);
     window.ethereum.on('chainChanged', chainChangedHandler);
 
+    const displayProducts = async () => {
+        if(defaultAccount){
+            await setContractAddress();
+            const count = await marketplace.methods.productCount().call();
+            console.log("Product count : "+count.toNumber());
+            for(var i=1; i<=count; i++){
+                const product =await  marketplace.methods.products(i).call();
+                setProducts (products=>[...products,product]);
+                
+            }
+        }
+        else{
+            alert('Please connect to wallet');
+        }
+    }
+
     const createProduct = async (name,price) =>{
         await setContractAddress();
         marketplace.methods.createProduct(name, price).send({from: defaultAccount})
         .once('receipt', (receipt) => {
             console.log(receipt);
         });
-
-        const count = await marketplace.methods.productCount().call();
-        console.log("Product count : "+count.toNumber());
-
-        for(var i=1; i<=count; i++){
-            const product =await  marketplace.methods.products(i).call();
-            setProducts([...products,product]);
-            console.log("Product : "+product);
-            console.log("Products : "+products);
-        }
-        console.log(products);
     }
     
     const purchaseProduct = async (id,price) => {
@@ -92,7 +97,6 @@ const Post = () => {
         .once('receipt', (receipt) => {
             console.log(receipt);
         });
-
     }
 
     return (
@@ -100,6 +104,7 @@ const Post = () => {
             <div className='walletCard'>
                 <h4> {"Connection to MetaMask using window.ethereum methods"} </h4>
                 <button onClick={connectWalletHandler}>{connButtonText}</button>
+                <button onClick={displayProducts}>showProduct</button>
                 <div className='accountDisplay'>
                     <h3>Address: {defaultAccount}</h3>
                 </div>
@@ -154,7 +159,8 @@ const Post = () => {
                         </tr>
                     </thead>
                     <tbody id="productList">
-                        { products.map((product, key) => {
+                        { products.map((product,key) => {
+                        const owner = product.owner.toLowerCase();
                         return(
                             <tr key={key}>
                             <th scope="row">{product.id.toString()}</th>
@@ -162,7 +168,7 @@ const Post = () => {
                             <td>{web3_utils.fromWei(product.price.toString(), 'ether')} Eth</td>
                             <td>{product.owner}</td>
                             <td>
-                                { !product.purchased  
+                                { (!product.purchased && owner !== defaultAccount)  
                                 ? <button
                                     name={product.id}
                                     value={product.price}
